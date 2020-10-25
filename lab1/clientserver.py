@@ -1,56 +1,189 @@
-import logging
 import socket
 
 import constCS
-from context import lab_logging
 
-lab_logging.setup(stream_level=logging.INFO)  # init loging channels for the lab
+class Protocol:
+    HEADER = 64
+    GET_MESSAGE = "GET"
+    GETALL_MESSAGE = "GETALL"
+    DISCONNECT_MESSAGE = "!DISCONNECT"
 
+    FORMAT = 'ascii'
 
 class Server:
-    _logger = logging.getLogger("vs2lab.lab1.clientserver.Server")
-    _serving = True
 
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((constCS.HOST, constCS.PORT))
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # prevents errors due to "addresses in use"
-        self.sock.settimeout(3)  # time out in order not to block forever
-        self._logger.info("Server bound to socket " + str(self.sock))
+
+    d = {"James": 235007, "Luke": 571708, "Holy": 839655, "Maria": 229351}
+
+
+    def _init_(self):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.bind((constCS.HOST, constCS.PORT))
+        self.s.settimeout(3)
+
+        print("Hello, I am the Server")
+
+        #self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.sock.bind((constCS.HOST, constCS.PORT))
+        #self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # prevents errors due to "addresses in use"
+        #self.sock.settimeout(3)  # time out in order not to block forever
+        #self._logger.info("Server bound to socket " + str(self.sock))
+
 
     def serve(self):
-        self.sock.listen(1)
-        while self._serving:  # as long as _serving (checked after connections or socket timeouts)
+        print("[STARTING] starting the Server")
+        self.s.listen(1)
+        while True:
             try:
-                (connection, address) = self.sock.accept()  # returns new socket and address of client
-                while True:  # forever
-                    data = connection.recv(1024)  # receive data from client
-                    if not data:
-                        break  # stop if client stopped
-                    connection.send(data + "*".encode('ascii'))  # return sent data plus an "*"
-                connection.close()  # close the connection
+                print("\n[CONNECTING] looking for connection")
+                (connection, address) = self.s.accept()  # returns new socket and address of client
+                self.handle_client(connection, address)
             except socket.timeout:
-                pass  # ignore timeouts
-        self.sock.close()
-        self._logger.info("Server down.")
+                print("    [TIMEOUT] trying again")
+                pass #ignore timeouts
+
+    def handle_client(self, connection, address):
+        print("[CLIENT] handling client")
+
+        connected = True
+        while connected:
+            msg_type = connection.recv(Protocol.HEADER).decode(Protocol.FORMAT)
+            if msg_type: #check if the message has any content. When you connect a blank message is sent, so this prevents erors
+                #remove trailing whitespace
+                msg_type = msg_type.replace(" ","") # eliminating appendet spaces
+                if msg_type == Protocol.GET_MESSAGE:
+                    self.handle_get(connection)
+                elif msg_type == Protocol.GETALL_MESSAGE:
+                    self.handle_getall(connection)
+                elif msg_type == Protocol.DISCONNECT_MESSAGE:
+                    self.handle_disconnect(connection)
+                    connected = False
+                else:
+                    print("Default -- something went wrong, received Type: " + msg_type + "END")
+                    connected = False
+        connection.close()
+        print("[CLOSED] Connection has been closed")
+
+    def handle_get(self, connection):
+        print("    [GET] GET handler started")
+        msg_length = connection.recv(Protocol.HEADER).decode(Protocol.FORMAT)
+        msg_length = int(msg_length)
+        print("        [MESSAGE_LENGTH] " + str(msg_length))
+        msg = connection.recv(msg_length).decode(Protocol.FORMAT)
+        print("        [MESSAGE] " + msg)
+
+        #Answer
+        if msg in Server.d:
+            answer = str(Server.d [msg])
+        else:
+            answer = "No Result"
+
+        send_answer = answer.encode(Protocol.FORMAT)
+        answer_length = len(send_answer)
+        send_length = str(answer_length).encode(Protocol.FORMAT)
+        send_length += b' ' * (Protocol.HEADER - len(send_length)) #Abbending bytes to match HEADER size
+
+        #Sending#sending length
+        connection.send(send_length)
+        print("    [ANSWER_LENGTH] Sending the length: " + send_length.decode(Protocol.FORMAT).replace(" ",""))
+        #sending name
+        connection.send(send_answer)
+        print("    [ANSWER] Sending the Answer: " + send_answer.decode(Protocol.FORMAT))
+
+
+    def handle_getall(self, connection):
+        print("    [GETALL] GETALL handler started")
+
+        #Answer
+        send_answer = str(Server.d).encode(Protocol.FORMAT)
+        answer_length = len(send_answer)
+        send_length = str(answer_length).encode(Protocol.FORMAT)
+        send_length += b' ' * (Protocol.HEADER - len(send_length)) #Abbending bytes to match HEADER size
+
+        #Sending#sending length
+        connection.send(send_length)
+        print("    [ANSWER_LENGTH] Sending the length: " + send_length.decode(Protocol.FORMAT).replace(" ",""))
+        #sending name
+        connection.send(send_answer)
+        print("    [ANSWER] Sending the Answer: " + send_answer.decode(Protocol.FORMAT))
+
+
+
+    def handle_disconnect(self, connection):
+        print("    [DISCONNECT] DISCONNECT handler started")
+        print ("I'm done!")
 
 
 class Client:
-    logger = logging.getLogger("vs2lab.a1_layers.clientserver.Client")
 
-    def __init__(self):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((constCS.HOST, constCS.PORT))
-        self.logger.info("Client connected to socket " + str(self.sock))
+    def _init_(self):
+        print("Hello, I am the Client")
 
-    def call(self, msg_in="Hello, world"):
-        self.sock.send(msg_in.encode('ascii'))  # send encoded string as data
-        data = self.sock.recv(1024)  # receive the response
-        msg_out = data.decode('ascii')
-        print(msg_out)  # print the result
-        self.sock.close()  # close the connection
-        self.logger.info("Client down.")
-        return msg_out
 
-    def close(self):
-        self.sock.close()
+    def get(self, name = "No Result"):
+        print("\n[GET] starting GET request with: " + name)
+        # Letting the Server know, that this is a GET request
+        send_get = Protocol.GET_MESSAGE.encode(Protocol.FORMAT)
+        send_get += b' ' * (Protocol.HEADER - len(send_get)) #Abbending bytes to match HEADER size
+        print("    [TYPE] Sending server the GET_MESSAGE: " + send_get.decode(Protocol.FORMAT).replace(" ",""))
+        self.s.send(send_get)
+
+        # calculating length
+        send_name = name.encode(Protocol.FORMAT)
+        name_length = len(send_name)
+        send_length = str(name_length).encode(Protocol.FORMAT)
+        send_length += b' ' * (Protocol.HEADER - len(send_length)) #Abbending bytes to match HEADER size
+
+        #sending length
+        self.s.send(send_length)
+        print("    [LENGTH] Sending server the length: " + send_length.decode(Protocol.FORMAT).replace(" ",""))
+        #sending name
+        self.s.send(send_name)
+        print("    [NAME] Sending server the name: " + send_name.decode(Protocol.FORMAT))
+
+        #Answer
+        waiting = True
+        while waiting:
+            msg_length = self.s.recv(Protocol.HEADER).decode(Protocol.FORMAT)
+            if msg_length:
+                msg_length = int(msg_length)
+                print("    [ANSWER_LENGTH] " + str(msg_length))
+                msg = self.s.recv(msg_length).decode(Protocol.FORMAT)
+                print("    [Answer] " + msg)
+                waiting = False
+
+
+    def getall(self):
+        print("\n[GETALL] starting GETALL ")
+
+        # Letting the Server know, that this is a GETALL request
+        send_getall = Protocol.GETALL_MESSAGE.encode(Protocol.FORMAT)
+        send_getall += b' ' * (Protocol.HEADER - len(send_getall)) #Abbending bytes to match HEADER size
+        print("    [TYPE] Sending server the GETALL_MESSAGE: " + send_getall.decode(Protocol.FORMAT).replace(" ",""))
+        self.s.send(send_getall)
+
+        #Answer
+        waiting = True
+        while waiting:
+            msg_length = self.s.recv(Protocol.HEADER).decode(Protocol.FORMAT)
+            if msg_length:
+                msg_length = int(msg_length)
+                print("    [ANSWER_LENGTH] " + str(msg_length))
+                msg = self.s.recv(msg_length).decode(Protocol.FORMAT)
+                print("    [Answer] " + msg)
+                waiting = False
+
+
+    def connect(self):
+        print("[CONNECTING]")
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((constCS.HOST, constCS.PORT))  # connect to server (block until accepted)
+        print("[CONNECTED] to: " + str(constCS.HOST) + "Port: " + str(constCS.PORT))
+
+    def disconnect(self):
+        print("\n[DISCONNECT] starting DISCONNECT ")
+        # Letting the Server know, that this is a Disconnect message
+        send_disconnect = Protocol.DISCONNECT_MESSAGE.encode(Protocol.FORMAT)
+        send_disconnect += b' ' * (Protocol.HEADER - len(send_disconnect)) #Abbending bytes to match HEADER size
+        print("    [TYPE] Sending server the DISCONNECT_MESSAGE: " + send_disconnect.decode(Protocol.FORMAT).replace(" ",""))
+        self.s.send(send_disconnect)
