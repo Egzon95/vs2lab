@@ -1,6 +1,8 @@
 import socket
-
 import constCS
+
+import random
+import string
 
 class Protocol:
     HEADER = 64
@@ -13,21 +15,22 @@ class Protocol:
 class Server:
 
 
-    d = {"James": 235007, "Luke": 571708, "Holy": 839655, "Maria": 229351}
+    d = {"James": 235007, "Luke": 571708, "Holy": 839655, "Maria": 229351, "Noah": 123456, "Egzon": 666666, "Yannik": 180546, "Julian": 555555}
+
+    i = 1
+    while i <= 500:
+        n = ''.join(random.choice(string.ascii_lowercase) for i in range(12))
+        d[n] = i
+        i += 1
 
 
-    def _init_(self):
+
+    def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((constCS.HOST, constCS.PORT))
         self.s.settimeout(3)
 
         print("Hello, I am the Server")
-
-        #self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #self.sock.bind((constCS.HOST, constCS.PORT))
-        #self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # prevents errors due to "addresses in use"
-        #self.sock.settimeout(3)  # time out in order not to block forever
-        #self._logger.info("Server bound to socket " + str(self.sock))
 
 
     def serve(self):
@@ -113,11 +116,18 @@ class Server:
         print("    [DISCONNECT] DISCONNECT handler started")
         print ("I'm done!")
 
-
 class Client:
 
-    def _init_(self):
+    def __init__(self):
         print("Hello, I am the Client")
+
+
+    def connect(self):
+        print("[CONNECTING]")
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((constCS.HOST, constCS.PORT))  # connect to server (block until accepted)
+        print("[CONNECTED] to: " + str(constCS.HOST) + "Port: " + str(constCS.PORT))
+        return True
 
 
     def get(self, name = "No Result"):
@@ -151,6 +161,7 @@ class Client:
                 msg = self.s.recv(msg_length).decode(Protocol.FORMAT)
                 print("    [Answer] " + msg)
                 waiting = False
+                return msg
 
 
     def getall(self):
@@ -172,13 +183,8 @@ class Client:
                 msg = self.s.recv(msg_length).decode(Protocol.FORMAT)
                 print("    [Answer] " + msg)
                 waiting = False
+                return msg
 
-
-    def connect(self):
-        print("[CONNECTING]")
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.s.connect((constCS.HOST, constCS.PORT))  # connect to server (block until accepted)
-        print("[CONNECTED] to: " + str(constCS.HOST) + "Port: " + str(constCS.PORT))
 
     def disconnect(self):
         print("\n[DISCONNECT] starting DISCONNECT ")
@@ -187,3 +193,4 @@ class Client:
         send_disconnect += b' ' * (Protocol.HEADER - len(send_disconnect)) #Abbending bytes to match HEADER size
         print("    [TYPE] Sending server the DISCONNECT_MESSAGE: " + send_disconnect.decode(Protocol.FORMAT).replace(" ",""))
         self.s.send(send_disconnect)
+        return True
