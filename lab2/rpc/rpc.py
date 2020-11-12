@@ -41,27 +41,33 @@ class Client:
         msgrcv = self.chan.receive_from(self.server)  # wait for response
         return msgrcv[1]  # pass it to caller
 
+    def appenda(self, data, db_list, callback):
+        assert isinstance(db_list, DBList)
+        msglst = (constRPC.APPEND, data, db_list)  # message payload
+        self.chan.send_to(self.server, msglst)  # send msg to server
+        print("[Client] Request sent")
+        ackrcv = self.chan.receive_from(self.server)  # wait for response
+        if ackrcv[1] == ACKAPPEND:
+            print("[Client] " + ackrcv[1] + " received from " + ackrcv[0])
+            append = self.AsnycAppend(self, callback)
+            append.start()
+            print("[Client] Thread started to wait for the servers response")
+
+
+
+
     class AsnycAppend(threading.Thread):
-        def __init__(self, data, db_list, client, callback = None):
+        def __init__(self, client, callback = None):
             threading.Thread.__init__(self)
-            self.data = data
-            self.db_list = db_list
             self.chan = client.chan
             self.server = client.server
             self.callback = callback
 
         def run(self):
-            assert isinstance(self.db_list, DBList)
-            msglst = (constRPC.APPEND, self.data, self.db_list)  # message payload
-            self.chan.send_to(self.server, msglst)  # send msg to server
-            print("[AsyncAppend] Request sent")
-            ackrcv = self.chan.receive_from(self.server)  # wait for response
-            if ackrcv[1] == ACKAPPEND:
-                print("[AsyncAppend] " + ackrcv[1] + " received from " + ackrcv[0])
-                msgrcv = self.chan.receive_from(self.server)  # wait for response
-                print("[AsyncAppend] Result: " + str(msgrcv[1]))
-                if self.callback:
-                    self.callback(msgrcv[1])
+            msgrcv = self.chan.receive_from(self.server)  # wait for response
+            print("[AsyncAppend] Result: " + str(msgrcv[1]))
+            if self.callback:
+                self.callback(msgrcv[1])
 
 
 
