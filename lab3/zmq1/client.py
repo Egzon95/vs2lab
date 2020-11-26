@@ -9,6 +9,7 @@ address = "tcp://" + constRR.HOST + ":" + constRR.PORT1  # how and where to conn
 requester = context.socket(zmq.REQ)  # create request socket
 
 requester.connect(address)  # request connection and go on 
+print("requested connection granted")
 
 for i in range(3): # 3 times
     requester.send(b"Hello world")  # send message and go on
