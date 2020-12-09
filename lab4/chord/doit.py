@@ -1,4 +1,4 @@
-""" 
+"""
 Chord Application
 - defines a DummyChordClient implementation
 - sets up a ring of chord_node instances
@@ -15,6 +15,9 @@ import chordnode as chord_node
 import constChord
 from context import lab_channel, lab_logging
 
+import random
+import math
+
 lab_logging.setup(stream_level=logging.INFO)
 
 
@@ -30,6 +33,20 @@ class DummyChordClient:
 
     def run(self):
         print("Implement me pls...")
+        self.channel.bind(self.node_id)
+        destination = [random.choice(list(self.channel.channel.smembers('node'))).decode()]
+        key = int(self.node_id)
+        #key = random.randint(0, math.pow(2, 6) - 1)         #Wie zum F** kann der key nur aus vorhandenen generiert werden?
+        print("Sending Request to:", destination, " for Key:", key)
+        self.channel.send_to(destination,(constChord.LOOKUP_REQ,key))
+        while True:
+            message = self.channel.receive_from(destination)
+            request = message[1]  # And the actual request
+            if request[0] == constChord.LOOKUP_REP:
+                print("#########################################")
+                print("Node ", request[1], " is responsible for ", key)
+                self.channel.send_to({i.decode() for i in list(self.channel.channel.smembers('node'))}, constChord.STOP)
+                break
         self.channel.send_to(  # a final multicast
             {i.decode() for i in list(self.channel.channel.smembers('node'))},
             constChord.STOP)
@@ -40,7 +57,7 @@ def create_and_run(num_bits, node_class, enter_bar, run_bar):
     Create and run a node (server or client role)
     :param num_bits: address range of the channel
     :param node_class: class of node
-    :param enter_bar: barrier syncing channel population 
+    :param enter_bar: barrier syncing channel population
     :param run_bar: barrier syncing node creation
     """
     chan = lab_channel.Channel(n_bits=num_bits)
