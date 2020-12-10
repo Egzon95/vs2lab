@@ -35,12 +35,22 @@ class DummyChordClient:
         print("Implement me pls...")
         self.channel.bind(self.node_id)
         destination = [random.choice(list(self.channel.channel.smembers('node'))).decode()]
-        key = int(self.node_id)
-        #key = random.randint(0, math.pow(2, 6) - 1)         #Wie zum F** kann der key nur aus vorhandenen generiert werden?
-        print("Sending Request to:", destination, " for Key:", key)
-        self.channel.send_to(destination,(constChord.LOOKUP_REQ,key))
+        key = random.randint(0,60)
+        smallestMatch = 100
+        liste = list(map(int,{i.decode() for i in list(self.channel.channel.smembers('node'))}))
+        print("IST KEY:", key)
+        for num in liste:
+            if num >= key:
+                if num <= smallestMatch:
+                    smallestMatch = num
+                    print("JETZT IST SmallestMatch:", smallestMatch)
+                print("vorherige Knoten war kleiner")
+            print("key eh größer als knoten",num)
+        print("Sending Request to:", destination, " for Key:", smallestMatch)
+        self.channel.send_to(destination,(constChord.LOOKUP_REQ,smallestMatch))
         while True:
             message = self.channel.receive_from(destination)
+            sender: str = message[0]  # Identify the sender
             request = message[1]  # And the actual request
             if request[0] == constChord.LOOKUP_REP:
                 print("#########################################")

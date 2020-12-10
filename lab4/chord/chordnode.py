@@ -160,6 +160,7 @@ class ChordNode:
                     print("\twaiting....")
                     rec_message = self.channel.receive_from([str(next_id)])
                     rec_request = rec_message[1]  # And the actual request
+                    print("##########################################",rec_request)
                     next_id = rec_request[1]
                     print("In Node: ", self.node_id, " recieved:", rec_message)
 
