@@ -35,19 +35,21 @@ class DummyChordClient:
         print("Implement me pls...")
         self.channel.bind(self.node_id)
         destination = [random.choice(list(self.channel.channel.smembers('node'))).decode()]
-        key = random.randint(0,60)
-        smallestMatch = 100
-        liste = list(map(int,{i.decode() for i in list(self.channel.channel.smembers('node'))}))
-        print("IST KEY:", key)
-        for num in liste:
-            if num >= key:
-                if num <= smallestMatch:
-                    smallestMatch = num
-                    print("JETZT IST SmallestMatch:", smallestMatch)
-                print("vorherige Knoten war kleiner")
-            print("key eh größer als knoten",num)
-        print("Sending Request to:", destination, " for Key:", smallestMatch)
-        self.channel.send_to(destination,(constChord.LOOKUP_REQ,smallestMatch))
+        key = random.randint(0,(self.channel.MAXPROC-1))
+        # smallestMatch = 100
+        # liste = list(map(int,{i.decode() for i in list(self.channel.channel.smembers('node'))}))
+        # print("IST KEY:", key)
+        # for num in liste:
+        #     if num >= key:
+        #         if num <= smallestMatch:
+        #             smallestMatch = num
+        #             print("JETZT IST SmallestMatch:", smallestMatch)
+        #         print("vorherige Knoten war kleiner")
+        #     print("key eh größer als knoten",num)
+        # print("Sending Request to:", destination, " for Key:", smallestMatch)
+        # if smallestMatch == 100:
+        #     smallestMatch = min(liste)
+        self.channel.send_to(destination,(constChord.LOOKUP_REQ,key))
         while True:
             message = self.channel.receive_from(destination)
             sender: str = message[0]  # Identify the sender

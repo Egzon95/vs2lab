@@ -154,21 +154,31 @@ class ChordNode:
                 # look up and return local successor
                 next_id: int = self.local_successor_node(request[1])
 
-                if int:
+                if next_id != self.node_id :
                     print("\tsend to next channel", next_id, "key", request[1])
                     self.channel.send_to([str(next_id)], (constChord.LOOKUP_REQ, request[1]))
-                    print("\twaiting....")
-                    rec_message = self.channel.receive_from([str(next_id)])
-                    rec_request = rec_message[1]  # And the actual request
-                    print("##########################################",rec_request)
-                    next_id = rec_request[1]
-                    print("In Node: ", self.node_id, " recieved:", rec_message)
+                    while True:
+                        message = self.channel.receive_from([str(next_id)])
 
-                self.channel.send_to([sender], (constChord.LOOKUP_REP, next_id))
+                        request = message[1]  # And the actual request
+                        if request[0] == constChord.LOOKUP_REP:
+                            result = request[1]
+                            self.channel.send_to([sender], (constChord.LOOKUP_REP, result))
+                            break
+                else:
+                    self.channel.send_to([sender], (constChord.LOOKUP_REP, self.node_id))
+                    # print("\twaiting....")
+                    # rec_message = self.channel.receive_from([str(next_id)])
+                    # rec_request = rec_message[1]  # And the actual request
+                    # print("##########################################",rec_request)
+                    # if rec_request[0] == constChord.LOOKUP_REP:
+                    #     next_id = rec_request[1]
+                    # print("In Node: ", self.node_id, " recieved:", rec_message)
 
                 # Finally do a sanity check
                 if not self.channel.exists(next_id):  # probe for existence
                     self.delete_node(next_id)  # purge disappeared node
+
 
             elif request[0] == constChord.JOIN:
                 # Join request (the node was already registered above)
