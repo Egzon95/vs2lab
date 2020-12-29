@@ -22,11 +22,11 @@ lines = file.readlines()
 print("Lines splitted")
 
 
-time.sleep(1) # wait to allow all Mappers to connect
+time.sleep(1)# wait to allow all Mappers to connect
 
 
 count = 1
 for line in lines:  # distribute the Lines
-    print("Line{}: {}".format(count,line.strip()))
+    print("Line{}: {}".format(count, line.strip()))
     push_socket.send(pickle.dumps(line))  #send workload to Mapper
     count = count + 1

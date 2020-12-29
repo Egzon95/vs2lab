@@ -65,13 +65,14 @@ if __name__ == "__main__":  # if script is started from command line
             name="Peer-" + str(i),
             args=(m, Process, bar1, bar2))
         children.append(peer_proc)
+        print("[DOIT] Peer created: " + peer_proc.name)
         peer_proc.start()
 
     # terminate a random process after some time (10 seconds)
-    time.sleep(10)
+    time.sleep(4)
     proc_id = random.randint(0, len(children) - 1)
     proc_to_crash = children[proc_id]
-    del(children[proc_id])    
+    del(children[proc_id])
 
     proc_to_crash.terminate()
     proc_to_crash.join()

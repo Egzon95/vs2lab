@@ -17,25 +17,15 @@ pull_socket = context.socket(zmq.PULL)  # create a pull socket
 
 pull_socket.connect(address1)  # connect to task source 1
 
-#Push Sockets for distributing
-#Choose push Adress
-if me == "1":
-    address2 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER10  # reducer0
-    address3 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER11  # reducer1
-    print("ME1 " + address2)
-elif me == "2":
-    address2 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER20  # reducer0
-    address3 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER21  # reducer1
-    print("ME2 " + address2)
-else:
-    address2 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER30  # reducer0
-    address3 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER31  # reducer1
 
-#Creating sockets
-push0 = context.socket(zmq.PUSH)
-push0.bind(address2)
-push1 = context.socket(zmq.PUSH)
-push1.bind(address3)
+#Creating sockets for ditributing
+addr0 = "tcp://" + constPipe.SRCREDUCER + ":" + constPipe.PORTRED0
+con0 = context.socket(zmq.PUSH)
+con0.connect(addr0)
+
+addr1 = "tcp://" + constPipe.SRCREDUCER + ":" + constPipe.PORTRED1
+con1 = context.socket(zmq.PUSH)
+con1.connect(addr1)
 
 #Waiting
 time.sleep(1) 
@@ -53,7 +43,7 @@ while True:
     for word in words:
         category = len(word) % reducerCount #Calculating category for the word
         if category == 0:
-            push0.send(pickle.dumps(word))
+            con0.send(pickle.dumps(word))
         else:
-            push1.send(pickle.dumps(word))
+            con1.send(pickle.dumps(word))
         print("{} sent to Reducer{}".format(word, category))

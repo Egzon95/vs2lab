@@ -10,35 +10,26 @@ me = str(sys.argv[1])
 context = zmq.Context()
 
 if me == "1":
-    address1 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER11  # 1st Mapper
-    address2 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER21  # 2nd Mapper
-    address3 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER31  # 3rd Mapper
+    address = "tcp://" + constPipe.SRCREDUCER + ":" + constPipe.PORTRED1
 else:
-    address1 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER10  # 1st Mapper
-    address2 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER20  # 2nd Mapper
-    address3 = "tcp://" + constPipe.SRCMAPPER + ":" + constPipe.PORTMAPPER30  # 3rd Mapper
+    address = "tcp://" + constPipe.SRCREDUCER + ":" + constPipe.PORTRED0
 
-
-pull_socket = context.socket(zmq.PULL)  # create a pull socket
-
-pull_socket.connect(address1)  # connect to task source 1
-pull_socket.connect(address2)  # connect to task source 2
-pull_socket.connect(address3)  # connect to task source 2
+bind_socket = context.socket(zmq.PULL)# create a pull socket
+bind_socket.bind(address)
 
 time.sleep(1) 
 
 print("{} started".format(me))
 
+wordcount = dict()
 
 while True:
-    word = pickle.loads(pull_socket.recv())  # receive work from a source
+    word = pickle.loads(bind_socket.recv())  # receive work from a source
     #If word was already accounted for
     if word in wordcount:
-    wordcount = dict()
         #Increase its count
         wordcount[word] = wordcount[word] + 1
     else:
         #Create it in wordcount
         wordcount[word] = 1
-    print("{}Word Received: \"{}\"".format(wordcount[word], word))
-
+    print("{}. Time received: \"{}\"".format(wordcount[word], word))
