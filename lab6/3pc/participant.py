@@ -68,6 +68,7 @@ class Participant:
             # Fail
             if decision == LOCAL_ABORT:
                 self.channel.send_to(self.coordinator, VOTE_ABORT)
+                self._enter_state('ABORT')
 
             # If local decision is positive,
             # we are ready to proceed the joint commit
@@ -103,13 +104,13 @@ class Participant:
             return "Participant {} terminated in state {} due to {}.".format(
                 self.participant, self.state, decision)
 
-        msg = self.channel.receive_from(self.coordinator,TIMEOUT*2)
+        msg = self.channel.receive_from(self.coordinator, TIMEOUT)
 
-        if not msg:
-            #Koordinator im Precommit
+        if not msg:     #Koordinator crashed / Precommit
             self._enter_state('ABORT')
             return "Participant {} terminated in state {}".format(
                 self.participant, self.state)
+
 
         elif msg[1] == GLOBAL_COMMIT:
             self._enter_state("COMMIT")
